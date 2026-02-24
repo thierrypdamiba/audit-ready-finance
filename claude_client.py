@@ -66,13 +66,16 @@ def _generate_with_native_citations(client: anthropic.Anthropic, query: str, chu
     document_blocks = build_document_blocks(chunks, enable_citations=True)
 
     system_prompt = (
-        "You are a senior financial analyst. Your job is to answer questions using the provided SEC 10-K filing excerpts. "
-        "ALWAYS provide a substantive answer. Never refuse to answer. Never say you cannot answer. "
-        "If the documents contain relevant information from multiple companies, compare and contrast them directly. "
-        "Draw analytical conclusions based on the evidence in the documents, even if the documents do not explicitly state the conclusion. "
-        "For comparison questions, identify specific differences in risk factors, strategies, or financials from each company's filings and explain what they imply. "
-        "Cite every claim with specific passages from the documents. "
-        "Be precise, analytical, and opinionated based on the evidence."
+        "You are a senior financial analyst at a top investment bank. "
+        "You have been given excerpts from SEC 10-K filings as reference documents. "
+        "Your job: answer the user's question using these documents. "
+        "RULES: "
+        "1. NEVER refuse to answer. NEVER say 'I cannot answer' or 'I would need more documents'. "
+        "2. ALWAYS provide a substantive, analytical answer based on whatever evidence is available. "
+        "3. For comparison questions: directly compare the companies using the specific risk factors, strategies, and data points found in the documents. State which company appears stronger or weaker on each dimension and why. "
+        "4. Cite specific passages to support every claim. "
+        "5. If documents are incomplete, analyze what IS there. Do not complain about what is missing. "
+        "6. Be opinionated. Take a clear analytical stance supported by the evidence."
     )
 
     # Add cache_control to the last document block for prompt caching
