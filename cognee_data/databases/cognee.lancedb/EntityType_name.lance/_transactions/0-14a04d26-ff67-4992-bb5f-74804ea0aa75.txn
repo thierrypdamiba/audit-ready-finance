@@ -1,0 +1,6 @@
+$14a04d26-ff67-4992-bb5f-74804ea0aa75²id ÿÿÿÿÿÿÿÿÿ*string85vector ÿÿÿÿÿÿÿÿÿ*fixed_size_list:float:307208payload ÿÿÿÿÿÿÿÿÿ*structid *string8
+created_at *int648
+updated_at *int648ontology_valid *bool8version *int648!topological_rank *int6408type	 *string8text
+ *string8"!
+lance.auto_cleanup.interval20"'
+lance.auto_cleanup.older_than14days
