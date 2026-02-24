@@ -369,6 +369,95 @@ def vector_search(
 
 # -- Stage 4: Full Pipeline --
 
+async def query_pipeline_stream(
+    query: str,
+    tenant_id: str | None = None,
+    top_k: int = 8,
+):
+    """Streaming version of query_pipeline. Yields (event, data) tuples for SSE."""
+    import json as _json
+    total_start = time.perf_counter()
+
+    # Stage 1
+    yield ("step", {"stage": 1, "status": "running", "title": "Building retrieval plan", "detail": "Analyzing query intent..."})
+    plan = build_retrieval_plan(query)
+    companies = plan["target_companies"]
+    sections = plan["target_sections"]
+    company_names = {t: COMPANY_NAMES.get(t, t) for t in companies}
+    yield ("step", {
+        "stage": 1, "status": "done", "title": "Building retrieval plan",
+        "detail": f"Targeting {', '.join(company_names.values())} across {len(sections)} section{'s' if len(sections) != 1 else ''}: {', '.join(sections)}",
+    })
+
+    # Stage 2 + 3 in parallel
+    yield ("step", {"stage": 2, "status": "running", "title": "Searching knowledge graph", "detail": "Querying Cognee for entity relationships..."})
+    yield ("step", {"stage": 3, "status": "running", "title": "Searching vector database", "detail": f"Querying Qdrant ({COLLECTION_NAME}, {len(companies)} companies)..."})
+
+    async def _vector_search_async():
+        return vector_search(query=query, target_companies=companies, target_sections=sections, tenant_id=tenant_id, top_k=top_k)
+
+    graph_task = asyncio.create_task(graph_search(query))
+    vector_task = asyncio.create_task(_vector_search_async())
+    graph_entities, vector_results = await asyncio.gather(graph_task, vector_task)
+
+    has_fallback = any(e.get("fallback") for e in graph_entities if isinstance(e, dict))
+    graph_detail = f"Found {len(graph_entities)} entity relationship{'s' if len(graph_entities) != 1 else ''}" if not has_fallback else "Graph search unavailable, continuing with vector results"
+    yield ("step", {"stage": 2, "status": "done", "title": "Searching knowledge graph", "detail": graph_detail})
+
+    vec_companies = set(r["ticker"] for r in vector_results)
+    yield ("step", {"stage": 3, "status": "done", "title": "Searching vector database", "detail": f"Retrieved {len(vector_results)} chunks from {', '.join(vec_companies)}"})
+
+    plan["steps"][1]["result_count"] = len(graph_entities)
+    plan["steps"][2]["result_count"] = len(vector_results)
+    retrieval_latency_ms = (time.perf_counter() - total_start) * 1000
+
+    # Stage 4
+    yield ("step", {"stage": 4, "status": "running", "title": "Generating answer", "detail": f"Sending {len(vector_results)} documents to Claude with citations enabled..."})
+    generation_start = time.perf_counter()
+    generation_result = generate_answer(query, vector_results)
+    generation_latency_ms = (time.perf_counter() - generation_start) * 1000
+    total_latency_ms = (time.perf_counter() - total_start) * 1000
+
+    n_cites = len(generation_result["citations"])
+    yield ("step", {"stage": 4, "status": "done", "title": "Generating answer", "detail": f"Generated answer with {n_cites} citation{'s' if n_cites != 1 else ''}"})
+
+    plan["steps"][3]["citation_count"] = n_cites
+
+    provenance_path = {
+        "query": query,
+        "plan": {"companies": plan["target_companies"], "sections": plan["target_sections"], "strategy": plan["search_strategy"]},
+        "graph_entities": graph_entities[:10],
+        "vector_documents": [{"company": r["company"], "section": r["section"], "score": r["score"], "chunk_preview": r["text"][:100]} for r in vector_results],
+        "answer_preview": generation_result["answer"][:200],
+        "citation_count": n_cites,
+    }
+
+    vector_results_for_log = [{k: v for k, v in r.items() if k != "text"} for r in vector_results]
+    audit_id = log_query(
+        query=query, retrieval_plan=plan, graph_entities=graph_entities,
+        vector_results=vector_results_for_log, answer=generation_result["answer"],
+        citations=generation_result["citations"], provenance_path=provenance_path,
+        model_used=generation_result.get("model", "claude-haiku-4-5-20251001"),
+        input_tokens=generation_result["input_tokens"], output_tokens=generation_result["output_tokens"],
+        retrieval_latency_ms=retrieval_latency_ms, generation_latency_ms=generation_latency_ms,
+        total_latency_ms=total_latency_ms,
+    )
+
+    result = {
+        "audit_id": audit_id,
+        "answer": generation_result["answer"],
+        "citations": generation_result["citations"],
+        "citation_mode": generation_result["citation_mode"],
+        "retrieval_plan": plan,
+        "graph_entities": graph_entities,
+        "vector_results": [{"company": r["company"], "ticker": r["ticker"], "section": r["section"], "fiscal_year": r["fiscal_year"], "score": r["score"], "text_preview": r["text"][:200], "chunk_index": r["chunk_index"]} for r in vector_results],
+        "provenance_path": provenance_path,
+        "latency": {"retrieval_ms": round(retrieval_latency_ms, 1), "generation_ms": round(generation_latency_ms, 1), "total_ms": round(total_latency_ms, 1)},
+        "tokens": {"input": generation_result["input_tokens"], "output": generation_result["output_tokens"]},
+    }
+    yield ("result", result)
+
+
 async def query_pipeline(
     query: str,
     tenant_id: str | None = None,

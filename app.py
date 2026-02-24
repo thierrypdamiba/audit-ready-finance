@@ -5,15 +5,17 @@ import os
 
 os.environ.setdefault("ENABLE_BACKEND_ACCESS_CONTROL", "false")
 
+import json
+
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from qdrant_client import QdrantClient
 
 from audit_trail import get_log_by_id, get_recent_logs, init_db
 from config import COLLECTION_NAME, PORT, QDRANT_API_KEY, QDRANT_URL
-from retrieval import graph_search, query_pipeline, vector_search
+from retrieval import graph_search, query_pipeline, query_pipeline_stream, vector_search
 
 app = FastAPI(title="Audit-Ready Finance", version="1.0.0")
 
@@ -58,6 +60,17 @@ async def handle_query(req: QueryRequest):
         top_k=req.top_k,
     )
     return result
+
+
+@app.post("/api/query-stream")
+async def handle_query_stream(req: QueryRequest):
+    """Streaming query endpoint. Returns SSE events for each pipeline stage."""
+    async def event_generator():
+        async for event_type, data in query_pipeline_stream(
+            query=req.question, tenant_id=req.tenant_id, top_k=req.top_k,
+        ):
+            yield f"event: {event_type}\ndata: {json.dumps(data)}\n\n"
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
 
 
 @app.get("/api/audit-log")
