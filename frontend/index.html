@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Audit-Ready Finance</title>
+<style>
+  :root {
+    --bg: #0f0f14;
+    --surface: #1a1a24;
+    --surface-2: #222233;
+    --border: #2d2d44;
+    --text: #e4e4ef;
+    --text-dim: #8888aa;
+    --purple: #7c3aed;
+    --purple-dim: #5b21b6;
+    --green: #22c55e;
+    --amber: #f59e0b;
+    --red: #ef4444;
+    --cyan: #06b6d4;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* Top Bar */
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 24px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+  .topbar h1 {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--purple);
+  }
+  .topbar .controls {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+  .topbar select {
+    background: var(--surface-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+  }
+  .topbar .status {
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+  .topbar .status .dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--green);
+    margin-right: 4px;
+  }
+
+  /* Main Layout */
+  .main {
+    display: grid;
+    grid-template-columns: 1fr 420px;
+    gap: 0;
+    height: calc(100vh - 49px - 280px);
+    min-height: 500px;
+  }
+
+  /* Left Panel */
+  .left-panel {
+    padding: 20px 24px;
+    overflow-y: auto;
+    border-right: 1px solid var(--border);
+  }
+
+  /* Query Input */
+  .query-box {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .query-box input {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .query-box input:focus {
+    border-color: var(--purple);
+  }
+  .query-box button {
+    background: var(--purple);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .query-box button:hover { background: var(--purple-dim); }
+  .query-box button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  /* Example Chips */
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+  .chip {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .chip:hover {
+    border-color: var(--purple);
+    color: var(--text);
+  }
+
+  /* Answer Area */
+  .answer-section {
+    display: none;
+  }
+  .answer-section.visible { display: block; }
+
+  .answer-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .answer-header h3 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--purple);
+  }
+  .answer-meta {
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+
+  .answer-text {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    font-size: 14px;
+    line-height: 1.6;
+    margin-bottom: 16px;
+    white-space: pre-wrap;
+  }
+
+  .citation-ref {
+    background: var(--purple-dim);
+    color: white;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+  }
+  .citation-ref:hover { background: var(--purple); }
+
+  /* Evidence Section */
+  .evidence-section h4 {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-dim);
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .evidence-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--purple);
+    border-radius: 0 8px 8px 0;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    font-size: 13px;
+  }
+  .evidence-card .source {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 6px;
+  }
+  .evidence-card .cited {
+    color: var(--cyan);
+    font-style: italic;
+  }
+
+  /* Loading */
+  .loading {
+    display: none;
+    padding: 40px;
+    text-align: center;
+    color: var(--text-dim);
+  }
+  .loading.visible { display: block; }
+  .spinner {
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    border: 3px solid var(--border);
+    border-top: 3px solid var(--purple);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin-bottom: 12px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Right Panel: Audit Trail */
+  .right-panel {
+    padding: 20px;
+    overflow-y: auto;
+    background: var(--surface);
+  }
+  .right-panel h3 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--purple);
+    margin-bottom: 16px;
+  }
+
+  .plan-step {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 12px;
+    padding: 10px;
+    background: var(--bg);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+  .plan-step:hover { border-color: var(--purple); }
+  .plan-step .step-num {
+    width: 24px;
+    height: 24px;
+    background: var(--purple-dim);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+  .plan-step .step-num.done { background: var(--green); }
+  .plan-step .step-content { flex: 1; }
+  .plan-step .step-title {
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .plan-step .step-detail {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
+  .step-expanded {
+    display: none;
+    margin-top: 8px;
+    padding: 8px;
+    background: var(--surface-2);
+    border-radius: 6px;
+    font-size: 12px;
+    color: var(--text-dim);
+    max-height: 200px;
+    overflow-y: auto;
+  }
+  .step-expanded.visible { display: block; }
+
+  .latency-bar {
+    display: flex;
+    gap: 12px;
+    padding: 10px;
+    background: var(--bg);
+    border-radius: 8px;
+    margin-top: 12px;
+    font-size: 12px;
+  }
+  .latency-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .latency-item .val {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--purple);
+  }
+  .latency-item .label {
+    color: var(--text-dim);
+    font-size: 10px;
+    text-transform: uppercase;
+  }
+
+  .graph-section {
+    margin-top: 16px;
+  }
+  .graph-section h4 {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--cyan);
+    margin-bottom: 8px;
+  }
+  .graph-entity {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 10px;
+    margin-bottom: 6px;
+    font-size: 12px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 120px;
+    overflow-y: auto;
+  }
+  .graph-entity .entity-label {
+    color: var(--cyan);
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  .provenance-section {
+    margin-top: 16px;
+  }
+  .provenance-section h4 {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+  }
+  .provenance-path {
+    font-size: 12px;
+    color: var(--text-dim);
+    padding: 10px;
+    background: var(--bg);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+  .provenance-arrow {
+    color: var(--purple);
+    margin: 4px 0;
+    font-weight: 600;
+  }
+
+  /* Bottom: Audit Log */
+  .bottom-panel {
+    border-top: 1px solid var(--border);
+    padding: 16px 24px;
+    max-height: 280px;
+    overflow-y: auto;
+    background: var(--surface);
+  }
+  .bottom-panel h3 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+  }
+  .audit-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+  .audit-table th {
+    text-align: left;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-dim);
+    font-weight: 500;
+    text-transform: uppercase;
+    font-size: 10px;
+    letter-spacing: 0.5px;
+  }
+  .audit-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .audit-table tr {
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .audit-table tr:hover { background: var(--surface-2); }
+  .audit-table .query-col {
+    max-width: 400px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 600;
+  }
+  .badge.purple { background: var(--purple-dim); color: white; }
+  .badge.green { background: #166534; color: var(--green); }
+
+  .empty-state {
+    text-align: center;
+    padding: 40px;
+    color: var(--text-dim);
+    font-size: 13px;
+  }
+
+  /* Right panel empty */
+  .right-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--text-dim);
+    font-size: 13px;
+    text-align: center;
+    padding: 40px;
+  }
+  .right-empty .icon {
+    font-size: 32px;
+    margin-bottom: 12px;
+    opacity: 0.3;
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>Audit-Ready Finance</h1>
+  <div class="controls">
+    <select id="companyFilter">
+      <option value="">All Companies</option>
+      <option value="AAPL">Apple (AAPL)</option>
+      <option value="TSLA">Tesla (TSLA)</option>
+      <option value="JPM">JPMorgan (JPM)</option>
+    </select>
+    <select id="tenantFilter">
+      <option value="">All Tenants</option>
+      <option value="portfolio_team_a">Portfolio Team A</option>
+      <option value="portfolio_team_b">Portfolio Team B</option>
+    </select>
+    <span class="status"><span class="dot"></span>Connected</span>
+  </div>
+</div>
+
+<div class="main">
+  <!-- Left Panel -->
+  <div class="left-panel">
+    <div class="query-box">
+      <input type="text" id="queryInput" placeholder="Ask a question about SEC 10-K filings..." />
+      <button id="askBtn" onclick="submitQuery()">Ask</button>
+    </div>
+
+    <div class="chips">
+      <span class="chip" onclick="askExample(this)">Why does Apple have a lower risk profile than Tesla?</span>
+      <span class="chip" onclick="askExample(this)">What drove Tesla's risk flag on supply chain?</span>
+      <span class="chip" onclick="askExample(this)">Compare revenue growth strategies across all three companies</span>
+      <span class="chip" onclick="askExample(this)">What are JPMorgan's key regulatory risk factors?</span>
+      <span class="chip" onclick="askExample(this)">Show me the evidence for Apple's cash position strength</span>
+    </div>
+
+    <div class="loading" id="loading">
+      <div class="spinner"></div>
+      <div id="loadingText">Building retrieval plan...</div>
+    </div>
+
+    <div class="answer-section" id="answerSection">
+      <div class="answer-header">
+        <h3>Answer</h3>
+        <span class="answer-meta" id="answerMeta"></span>
+      </div>
+      <div class="answer-text" id="answerText"></div>
+
+      <div class="evidence-section">
+        <h4>Evidence &amp; Citations</h4>
+        <div id="evidenceList"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Panel -->
+  <div class="right-panel" id="rightPanel">
+    <div class="right-empty" id="rightEmpty">
+      <div class="icon">&#9776;</div>
+      <div>Ask a question to see the<br>retrieval plan and audit trail</div>
+    </div>
+    <div id="auditTrail" style="display:none;">
+      <h3>Retrieval Plan</h3>
+      <div id="planSteps"></div>
+      <div class="latency-bar" id="latencyBar"></div>
+      <div class="graph-section" id="graphSection" style="display:none;">
+        <h4>Graph Entities (Cognee)</h4>
+        <div id="graphEntities"></div>
+      </div>
+      <div class="provenance-section">
+        <h4>Provenance Path</h4>
+        <div class="provenance-path" id="provenancePath"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bottom Panel: Audit Log -->
+<div class="bottom-panel">
+  <h3>Audit Log</h3>
+  <table class="audit-table" id="auditTable">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Timestamp</th>
+        <th>Query</th>
+        <th>Citations</th>
+        <th>Latency</th>
+        <th>Tokens</th>
+      </tr>
+    </thead>
+    <tbody id="auditBody">
+      <tr><td colspan="6" class="empty-state">No queries yet. Ask a question to get started.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<script>
+const API = '';
+let currentResult = null;
+
+async function submitQuery() {
+  const input = document.getElementById('queryInput');
+  const question = input.value.trim();
+  if (!question) return;
+
+  const btn = document.getElementById('askBtn');
+  btn.disabled = true;
+
+  // Show loading
+  document.getElementById('loading').classList.add('visible');
+  document.getElementById('answerSection').classList.remove('visible');
+  document.getElementById('rightEmpty').style.display = 'none';
+  document.getElementById('auditTrail').style.display = 'none';
+
+  const steps = ['Building retrieval plan...', 'Searching knowledge graph...', 'Filtering vector documents...', 'Generating answer with citations...'];
+  let stepIdx = 0;
+  const loadingInterval = setInterval(() => {
+    stepIdx = Math.min(stepIdx + 1, steps.length - 1);
+    document.getElementById('loadingText').textContent = steps[stepIdx];
+  }, 1500);
+
+  try {
+    const tenant = document.getElementById('tenantFilter').value || null;
+    const company = document.getElementById('companyFilter').value || null;
+
+    // If a company is selected, prepend it to the question for the retrieval plan
+    let questionForApi = question;
+    if (company) {
+      const names = {AAPL: 'Apple', TSLA: 'Tesla', JPM: 'JPMorgan'};
+      const name = names[company] || company;
+      if (!question.toLowerCase().includes(name.toLowerCase())) {
+        questionForApi = `[Focus on ${name}] ${question}`;
+      }
+    }
+
+    const resp = await fetch(API + '/api/query', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ question: questionForApi, tenant_id: tenant, top_k: 8 }),
+    });
+    if (!resp.ok) {
+      const errText = await resp.text();
+      throw new Error(`API error ${resp.status}: ${errText.substring(0, 200)}`);
+    }
+    const data = await resp.json();
+    currentResult = data;
+    renderAnswer(data);
+    renderAuditTrail(data);
+    loadAuditLog();
+  } catch (err) {
+    document.getElementById('answerText').textContent = 'Error: ' + err.message;
+    document.getElementById('answerSection').classList.add('visible');
+  } finally {
+    clearInterval(loadingInterval);
+    document.getElementById('loading').classList.remove('visible');
+    btn.disabled = false;
+  }
+}
+
+function askExample(chip) {
+  document.getElementById('queryInput').value = chip.textContent;
+  submitQuery();
+}
+
+function simpleMarkdown(text) {
+  // Convert basic markdown to HTML (headers, bold, lists)
+  let html = escapeHtml(text);
+  html = html.replace(/^### (.+)$/gm, '<h5 style="margin:12px 0 4px;color:var(--text);">$1</h5>');
+  html = html.replace(/^## (.+)$/gm, '<h4 style="margin:14px 0 6px;color:var(--text);">$1</h4>');
+  html = html.replace(/^# (.+)$/gm, '<h3 style="margin:16px 0 8px;color:var(--purple);">$1</h3>');
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/\n/g, '<br>');
+  // Style citation references [1], [2], etc.
+  html = html.replace(/\[(\d+)\]/g, '<span class="citation-ref">[$1]</span>');
+  return html;
+}
+
+function renderAnswer(data) {
+  let text = data.answer || '';
+  document.getElementById('answerText').innerHTML = simpleMarkdown(text);
+
+  // Meta
+  const meta = `${data.citation_mode} citations | ${data.latency?.total_ms?.toFixed(0) || '?'}ms | ${data.tokens?.input || 0} in / ${data.tokens?.output || 0} out`;
+  document.getElementById('answerMeta').textContent = meta;
+
+  // Evidence cards
+  const evidenceList = document.getElementById('evidenceList');
+  evidenceList.innerHTML = '';
+
+  if (data.citations && data.citations.length > 0) {
+    data.citations.forEach((cite, idx) => {
+      const card = document.createElement('div');
+      card.className = 'evidence-card';
+      card.innerHTML = `
+        <span class="badge purple">[${cite.index || idx + 1}]</span>
+        <span class="cited">"${escapeHtml(cite.cited_text || '').substring(0, 200)}${(cite.cited_text || '').length > 200 ? '...' : ''}"</span>
+        <div class="source">
+          ${cite.source_company || cite.document_title || 'Unknown'} | ${cite.source_section || ''} | FY${cite.source_fiscal_year || '?'}
+        </div>
+      `;
+      evidenceList.appendChild(card);
+    });
+  } else {
+    evidenceList.innerHTML = '<div class="empty-state">No structured citations extracted</div>';
+  }
+
+  document.getElementById('answerSection').classList.add('visible');
+}
+
+function renderAuditTrail(data) {
+  const plan = data.retrieval_plan || {};
+  const steps = plan.steps || [];
+
+  // Plan steps
+  const planDiv = document.getElementById('planSteps');
+  planDiv.innerHTML = '';
+
+  steps.forEach((step, idx) => {
+    const div = document.createElement('div');
+    div.className = 'plan-step';
+    div.onclick = () => toggleStep(div);
+
+    let detail = step.description || '';
+    if (step.result_count !== undefined) detail += ` (${step.result_count} results)`;
+    if (step.citation_count !== undefined) detail += ` (${step.citation_count} citations)`;
+
+    div.innerHTML = `
+      <div class="step-num done">${step.stage || idx + 1}</div>
+      <div class="step-content">
+        <div class="step-title">${step.action || 'step'}</div>
+        <div class="step-detail">${detail}</div>
+        <div class="step-expanded" id="step-exp-${idx}">
+          <pre>${JSON.stringify(step, null, 2)}</pre>
+        </div>
+      </div>
+    `;
+    planDiv.appendChild(div);
+  });
+
+  // Latency
+  const lat = data.latency || {};
+  document.getElementById('latencyBar').innerHTML = `
+    <div class="latency-item"><div class="val">${lat.retrieval_ms?.toFixed(0) || '?'}</div><div class="label">Retrieval ms</div></div>
+    <div class="latency-item"><div class="val">${lat.generation_ms?.toFixed(0) || '?'}</div><div class="label">Generation ms</div></div>
+    <div class="latency-item"><div class="val">${lat.total_ms?.toFixed(0) || '?'}</div><div class="label">Total ms</div></div>
+    <div class="latency-item"><div class="val">${data.citations?.length || 0}</div><div class="label">Citations</div></div>
+  `;
+
+  // Provenance path
+  const prov = data.provenance_path || {};
+  const provDiv = document.getElementById('provenancePath');
+  let provHtml = `<strong>Query:</strong> ${escapeHtml(prov.query || '')}<br>`;
+  provHtml += `<div class="provenance-arrow">&#8595;</div>`;
+  provHtml += `<strong>Plan:</strong> ${(prov.plan?.companies || []).join(', ')} | ${(prov.plan?.sections || []).join(', ')}<br>`;
+  provHtml += `<div class="provenance-arrow">&#8595;</div>`;
+
+  // Show graph entities in dedicated section
+  const graphEntities = data.graph_entities || [];
+  const graphSection = document.getElementById('graphSection');
+  const graphDiv = document.getElementById('graphEntities');
+  if (graphEntities.length > 0 && !graphEntities[0]?.error) {
+    graphSection.style.display = 'block';
+    graphDiv.innerHTML = '';
+    graphEntities.forEach(entity => {
+      const card = document.createElement('div');
+      card.className = 'graph-entity';
+      if (entity.subject && entity.predicate) {
+        card.innerHTML = `<div class="entity-label">Relationship</div>${escapeHtml(entity.subject)} <strong style="color:var(--purple)">${escapeHtml(entity.predicate)}</strong> ${escapeHtml(entity.object || '')}`;
+      } else if (entity.raw) {
+        card.innerHTML = `<div class="entity-label">Graph Completion</div>${escapeHtml(entity.raw)}`;
+      } else {
+        card.textContent = JSON.stringify(entity, null, 2);
+      }
+      graphDiv.appendChild(card);
+    });
+  } else if (graphEntities.length > 0 && graphEntities[0]?.error) {
+    graphSection.style.display = 'block';
+    graphDiv.innerHTML = `<div class="graph-entity" style="color:var(--text-dim);">Graph search fallback: ${escapeHtml(graphEntities[0].error)}</div>`;
+  } else {
+    graphSection.style.display = 'none';
+  }
+
+  const graphCount = graphEntities.length;
+  provHtml += `<strong>Graph:</strong> ${graphCount} entities found<br>`;
+  provHtml += `<div class="provenance-arrow">&#8595;</div>`;
+
+  const vecDocs = prov.vector_documents || [];
+  provHtml += `<strong>Documents:</strong> ${vecDocs.length} chunks retrieved<br>`;
+  if (vecDocs.length > 0) {
+    provHtml += '<div style="margin-left: 12px; margin-top: 4px;">';
+    vecDocs.slice(0, 5).forEach(d => {
+      provHtml += `<div>${d.company} | ${d.section} | score: ${d.score?.toFixed(3)}</div>`;
+    });
+    if (vecDocs.length > 5) provHtml += `<div>... and ${vecDocs.length - 5} more</div>`;
+    provHtml += '</div>';
+  }
+  provHtml += `<div class="provenance-arrow">&#8595;</div>`;
+  provHtml += `<strong>Answer:</strong> ${prov.citation_count || 0} citations generated`;
+  provDiv.innerHTML = provHtml;
+
+  document.getElementById('auditTrail').style.display = 'block';
+}
+
+function toggleStep(div) {
+  const exp = div.querySelector('.step-expanded');
+  if (exp) exp.classList.toggle('visible');
+}
+
+async function loadAuditLog() {
+  try {
+    const resp = await fetch(API + '/api/audit-log?limit=20');
+    const logs = await resp.json();
+    const tbody = document.getElementById('auditBody');
+
+    if (!logs || logs.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No queries yet</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = logs.map(log => `
+      <tr onclick="loadAuditEntry(${log.id})">
+        <td><span class="badge green">#${log.id}</span></td>
+        <td>${new Date(log.timestamp).toLocaleTimeString()}</td>
+        <td class="query-col">${escapeHtml(log.query)}</td>
+        <td>${log.citations_count || 0}</td>
+        <td>${log.total_latency_ms?.toFixed(0) || '?'}ms</td>
+        <td>${(log.input_tokens || 0) + (log.output_tokens || 0)}</td>
+      </tr>
+    `).join('');
+  } catch (err) {
+    console.error('Failed to load audit log:', err);
+  }
+}
+
+async function loadAuditEntry(id) {
+  try {
+    const resp = await fetch(API + '/api/audit-log/' + id);
+    const data = await resp.json();
+
+    // Reconstruct display format
+    const displayData = {
+      answer: data.answer,
+      citations: data.citations,
+      citation_mode: data.model_used ? `audit replay (${data.model_used})` : 'audit replay',
+      retrieval_plan: data.retrieval_plan,
+      graph_entities: data.graph_entities,
+      vector_results: (data.vector_results || []).map(v => ({
+        company: v.company,
+        section: v.section,
+        score: v.score,
+        text_preview: v.text_preview || '',
+      })),
+      provenance_path: data.provenance_path,
+      latency: {
+        retrieval_ms: data.retrieval_latency_ms,
+        generation_ms: data.generation_latency_ms,
+        total_ms: data.total_latency_ms,
+      },
+      tokens: {
+        input: data.input_tokens,
+        output: data.output_tokens,
+      },
+    };
+
+    document.getElementById('queryInput').value = data.query;
+    renderAnswer(displayData);
+    renderAuditTrail(displayData);
+  } catch (err) {
+    console.error('Failed to load audit entry:', err);
+  }
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+// Listen for Enter key
+document.getElementById('queryInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') submitQuery();
+});
+
+// Load audit log on page load
+loadAuditLog();
+</script>
+</body>
+</html>

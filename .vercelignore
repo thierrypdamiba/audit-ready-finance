@@ -1,0 +1,8 @@
+.venv/
+data/
+scripts/
+__pycache__/
+*.pyc
+.env
+audit_trail.db
+.claude/

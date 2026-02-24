@@ -1,0 +1,5 @@
+anthropic>=0.83.0
+fastapi>=0.132.0
+openai>=2.23.0
+python-dotenv>=1.2.1
+qdrant-client>=1.17.0

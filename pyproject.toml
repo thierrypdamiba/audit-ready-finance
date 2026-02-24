@@ -1,0 +1,19 @@
+[project]
+name = "audit-ready-finance"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "anthropic>=0.83.0",
+    "beautifulsoup4>=4.14.3",
+    "cognee>=0.5.2",
+    "cognee-community-vector-adapter-qdrant>=0.2.1",
+    "fastapi>=0.132.0",
+    "lxml>=6.0.2",
+    "openai>=2.23.0",
+    "python-dotenv>=1.2.1",
+    "qdrant-client>=1.17.0",
+    "sec-edgar-downloader>=5.1.0",
+    "uvicorn>=0.41.0",
+]
