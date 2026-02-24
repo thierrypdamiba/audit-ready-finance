@@ -83,7 +83,12 @@ def _generate_with_native_citations(client: anthropic.Anthropic, query: str, chu
     if document_blocks:
         document_blocks[-1]["cache_control"] = {"type": "ephemeral"}
 
-    content = document_blocks + [{"type": "text", "text": query}]
+    user_text = (
+        f"{query}\n\n"
+        "Analyze the documents above and provide a direct, substantive answer. "
+        "Do not hedge or say you cannot answer. Cite specific passages."
+    )
+    content = document_blocks + [{"type": "text", "text": user_text}]
 
     response = client.messages.create(
         model=model,
