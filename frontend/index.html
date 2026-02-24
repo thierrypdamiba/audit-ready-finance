@@ -112,39 +112,57 @@
   .right-panel h3 { font-size: 14px; font-weight: 600; color: var(--purple); margin-bottom: 16px; }
 
   /* Pipeline Steps */
-  .pipeline-steps { display: flex; flex-direction: column; gap: 0; }
+  .pipeline-steps { display: flex; flex-direction: column; gap: 0; margin-left: 4px; }
   .pipe-step {
-    display: flex; gap: 12px; padding: 12px 10px; position: relative;
+    display: flex; gap: 14px; padding: 0 10px; position: relative; min-height: 48px;
   }
-  .pipe-step:not(:last-child)::after {
-    content: ''; position: absolute; left: 21px; top: 36px; bottom: -4px;
-    width: 2px; background: var(--border);
+  /* Vertical line on the left, connecting circles */
+  .pipe-track {
+    display: flex; flex-direction: column; align-items: center; flex-shrink: 0; width: 28px;
   }
-  .pipe-step.done:not(:last-child)::after { background: var(--green); }
-  .pipe-step.running:not(:last-child)::after { background: var(--purple); }
+  .pipe-line-top { width: 2px; height: 8px; background: transparent; }
+  .pipe-step:not(:first-child) .pipe-line-top { background: var(--border); }
+  .pipe-step:not(:first-child).done .pipe-line-top { background: var(--green); }
+  .pipe-step:not(:first-child).running .pipe-line-top { background: var(--purple); }
+  .pipe-line-bottom { width: 2px; flex: 1; background: transparent; }
+  .pipe-step:not(:last-child) .pipe-line-bottom { background: var(--border); }
+  .pipe-step:not(:last-child).done .pipe-line-bottom { background: var(--green); }
+  .pipe-step:not(:last-child).running .pipe-line-bottom { background: var(--purple); }
 
   .pipe-icon {
     width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center;
-    justify-content: center; font-size: 13px; font-weight: 600; flex-shrink: 0;
+    justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0;
     border: 2px solid var(--border); color: var(--text-dim); background: var(--bg);
-    transition: all 0.3s;
+    transition: all 0.3s; z-index: 1;
   }
   .pipe-step.pending .pipe-icon { border-color: var(--border); color: var(--text-dim); }
   .pipe-step.running .pipe-icon { border-color: var(--purple); color: var(--purple); animation: pulse 1.5s ease-in-out infinite; }
   .pipe-step.done .pipe-icon { border-color: var(--green); color: var(--green); background: rgba(34,197,94,0.1); }
   @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
 
-  .pipe-body { flex: 1; min-width: 0; }
-  .pipe-title { font-size: 13px; font-weight: 500; }
+  .pipe-body { flex: 1; min-width: 0; padding: 4px 0 12px; }
+  .pipe-title { font-size: 13px; font-weight: 600; }
   .pipe-step.pending .pipe-title { color: var(--text-dim); }
   .pipe-step.running .pipe-title { color: var(--text); }
   .pipe-step.done .pipe-title { color: var(--text); }
   .pipe-detail {
     font-size: 12px; color: var(--text-dim); margin-top: 3px; line-height: 1.4;
-    transition: all 0.3s;
   }
   .pipe-step.running .pipe-detail { color: var(--purple); }
-  .pipe-step.done .pipe-detail { color: var(--text-dim); }
+
+  /* Thinking sub-messages */
+  .pipe-thinking {
+    margin-top: 6px; padding: 8px 10px; background: var(--bg); border-radius: 6px;
+    border-left: 2px solid var(--purple-dim); font-size: 11px; color: var(--text-dim);
+    line-height: 1.5; max-height: 120px; overflow-y: auto;
+  }
+  .pipe-thinking .think-line {
+    padding: 2px 0; opacity: 0; animation: fadeIn 0.3s forwards;
+  }
+  .pipe-thinking .think-line .think-label {
+    color: var(--purple); font-weight: 600; margin-right: 4px;
+  }
+  @keyframes fadeIn { to { opacity: 1; } }
 
   /* Graph + Provenance (shown after done) */
   .graph-section { margin-top: 16px; }
@@ -260,31 +278,35 @@
       <h3>Pipeline</h3>
       <div class="pipeline-steps" id="pipelineSteps">
         <div class="pipe-step pending" id="pipe-1">
-          <div class="pipe-icon">1</div>
+          <div class="pipe-track"><div class="pipe-line-top"></div><div class="pipe-icon">1</div><div class="pipe-line-bottom"></div></div>
           <div class="pipe-body">
             <div class="pipe-title">Build retrieval plan</div>
             <div class="pipe-detail">Waiting...</div>
+            <div class="pipe-thinking" id="think-1" style="display:none;"></div>
           </div>
         </div>
         <div class="pipe-step pending" id="pipe-2">
-          <div class="pipe-icon">2</div>
+          <div class="pipe-track"><div class="pipe-line-top"></div><div class="pipe-icon">2</div><div class="pipe-line-bottom"></div></div>
           <div class="pipe-body">
             <div class="pipe-title">Search knowledge graph</div>
             <div class="pipe-detail">Waiting...</div>
+            <div class="pipe-thinking" id="think-2" style="display:none;"></div>
           </div>
         </div>
         <div class="pipe-step pending" id="pipe-3">
-          <div class="pipe-icon">3</div>
+          <div class="pipe-track"><div class="pipe-line-top"></div><div class="pipe-icon">3</div><div class="pipe-line-bottom"></div></div>
           <div class="pipe-body">
             <div class="pipe-title">Search vector database</div>
             <div class="pipe-detail">Waiting...</div>
+            <div class="pipe-thinking" id="think-3" style="display:none;"></div>
           </div>
         </div>
         <div class="pipe-step pending" id="pipe-4">
-          <div class="pipe-icon">4</div>
+          <div class="pipe-track"><div class="pipe-line-top"></div><div class="pipe-icon">4</div><div class="pipe-line-bottom"></div></div>
           <div class="pipe-body">
             <div class="pipe-title">Generate answer</div>
             <div class="pipe-detail">Waiting...</div>
+            <div class="pipe-thinking" id="think-4" style="display:none;"></div>
           </div>
         </div>
       </div>
@@ -329,6 +351,8 @@ function resetPipeline() {
     const el = document.getElementById('pipe-' + i);
     el.className = 'pipe-step pending';
     el.querySelector('.pipe-detail').textContent = 'Waiting...';
+    const think = document.getElementById('think-' + i);
+    if (think) { think.innerHTML = ''; think.style.display = 'none'; }
   }
   document.getElementById('statsBar').style.display = 'none';
   document.getElementById('graphSection').style.display = 'none';
@@ -341,8 +365,18 @@ function updateStep(stage, status, title, detail) {
   el.className = 'pipe-step ' + status;
   if (title) el.querySelector('.pipe-title').textContent = title;
   if (detail) el.querySelector('.pipe-detail').textContent = detail;
-  // Auto-scroll right panel to show latest step
   el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function addThinking(stage, text) {
+  const think = document.getElementById('think-' + stage);
+  if (!think) return;
+  think.style.display = 'block';
+  const line = document.createElement('div');
+  line.className = 'think-line';
+  line.innerHTML = '<span class="think-label">&gt;</span>' + escapeHtml(text);
+  think.appendChild(line);
+  think.scrollTop = think.scrollHeight;
 }
 
 async function submitQuery() {
@@ -403,6 +437,8 @@ async function submitQuery() {
           const data = JSON.parse(line.slice(6));
           if (eventType === 'step') {
             updateStep(data.stage, data.status, data.title, data.detail);
+          } else if (eventType === 'thinking') {
+            addThinking(data.stage, data.text);
           } else if (eventType === 'result') {
             currentResult = data;
             renderAnswer(data);

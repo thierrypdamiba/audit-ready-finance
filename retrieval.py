@@ -384,14 +384,26 @@ async def query_pipeline_stream(
     companies = plan["target_companies"]
     sections = plan["target_sections"]
     company_names = {t: COMPANY_NAMES.get(t, t) for t in companies}
+
+    # Thinking: show reasoning
+    yield ("thinking", {"stage": 1, "text": f"Detected companies: {', '.join(company_names.values())}"})
+    yield ("thinking", {"stage": 1, "text": f"Relevant sections: {', '.join(sections)}"})
+    if plan["is_comparison"]:
+        yield ("thinking", {"stage": 1, "text": f"This is a comparison query, will use multi-company retrieval"})
+    yield ("thinking", {"stage": 1, "text": f"Strategy: {plan['search_strategy']}"})
+
     yield ("step", {
         "stage": 1, "status": "done", "title": "Building retrieval plan",
-        "detail": f"Targeting {', '.join(company_names.values())} across {len(sections)} section{'s' if len(sections) != 1 else ''}: {', '.join(sections)}",
+        "detail": f"Targeting {', '.join(company_names.values())} across {len(sections)} section{'s' if len(sections) != 1 else ''}",
     })
 
     # Stage 2 + 3 in parallel
     yield ("step", {"stage": 2, "status": "running", "title": "Searching knowledge graph", "detail": "Querying Cognee for entity relationships..."})
-    yield ("step", {"stage": 3, "status": "running", "title": "Searching vector database", "detail": f"Querying Qdrant ({COLLECTION_NAME}, {len(companies)} companies)..."})
+    yield ("thinking", {"stage": 2, "text": "Connecting to Cognee GraphRAG engine..."})
+    yield ("step", {"stage": 3, "status": "running", "title": "Searching vector database", "detail": f"Querying Qdrant with filters..."})
+    yield ("thinking", {"stage": 3, "text": f"Collection: {COLLECTION_NAME} ({len(companies)} company filter{'s' if len(companies) != 1 else ''})"})
+    if len(companies) > 1:
+        yield ("thinking", {"stage": 3, "text": f"Using diversified search: {top_k // len(companies)} chunks per company"})
 
     async def _vector_search_async():
         return vector_search(query=query, target_companies=companies, target_sections=sections, tenant_id=tenant_id, top_k=top_k)
@@ -401,10 +413,21 @@ async def query_pipeline_stream(
     graph_entities, vector_results = await asyncio.gather(graph_task, vector_task)
 
     has_fallback = any(e.get("fallback") for e in graph_entities if isinstance(e, dict))
-    graph_detail = f"Found {len(graph_entities)} entity relationship{'s' if len(graph_entities) != 1 else ''}" if not has_fallback else "Graph search unavailable, continuing with vector results"
+    if not has_fallback and graph_entities:
+        for ent in graph_entities[:3]:
+            if isinstance(ent, dict):
+                preview = ent.get("raw", ent.get("subject", str(ent)))[:100]
+                yield ("thinking", {"stage": 2, "text": preview})
+    graph_detail = f"Found {len(graph_entities)} entity relationship{'s' if len(graph_entities) != 1 else ''}" if not has_fallback else "Graph unavailable, continuing with vector results"
     yield ("step", {"stage": 2, "status": "done", "title": "Searching knowledge graph", "detail": graph_detail})
 
     vec_companies = set(r["ticker"] for r in vector_results)
+    # Show what was retrieved
+    for ticker in vec_companies:
+        count = sum(1 for r in vector_results if r["ticker"] == ticker)
+        top_section = max(set(r["section"] for r in vector_results if r["ticker"] == ticker), key=lambda s: sum(1 for r in vector_results if r["ticker"] == ticker and r["section"] == s))
+        yield ("thinking", {"stage": 3, "text": f"{COMPANY_NAMES.get(ticker, ticker)}: {count} chunks (top section: {top_section})"})
+
     yield ("step", {"stage": 3, "status": "done", "title": "Searching vector database", "detail": f"Retrieved {len(vector_results)} chunks from {', '.join(vec_companies)}"})
 
     plan["steps"][1]["result_count"] = len(graph_entities)
@@ -412,13 +435,18 @@ async def query_pipeline_stream(
     retrieval_latency_ms = (time.perf_counter() - total_start) * 1000
 
     # Stage 4
-    yield ("step", {"stage": 4, "status": "running", "title": "Generating answer", "detail": f"Sending {len(vector_results)} documents to Claude with citations enabled..."})
+    yield ("step", {"stage": 4, "status": "running", "title": "Generating answer", "detail": "Sending documents to Claude..."})
+    yield ("thinking", {"stage": 4, "text": f"Building {len(vector_results)} document blocks with citation metadata"})
+    yield ("thinking", {"stage": 4, "text": f"Model: {CLAUDE_MODEL} with native citations API"})
+    yield ("thinking", {"stage": 4, "text": "Waiting for Claude to analyze and cite sources..."})
+
     generation_start = time.perf_counter()
     generation_result = generate_answer(query, vector_results)
     generation_latency_ms = (time.perf_counter() - generation_start) * 1000
     total_latency_ms = (time.perf_counter() - total_start) * 1000
 
     n_cites = len(generation_result["citations"])
+    yield ("thinking", {"stage": 4, "text": f"Received {generation_result['output_tokens']} output tokens with {n_cites} inline citations"})
     yield ("step", {"stage": 4, "status": "done", "title": "Generating answer", "detail": f"Generated answer with {n_cites} citation{'s' if n_cites != 1 else ''}"})
 
     plan["steps"][3]["citation_count"] = n_cites

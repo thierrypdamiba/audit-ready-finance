@@ -13,3 +13,4 @@ wheels/
 data/filings/
 __pycache__/
 .venv/
+.vercel
