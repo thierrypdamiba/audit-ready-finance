@@ -51,7 +51,10 @@
   /* Main Layout */
   .main {
     display: grid; grid-template-columns: 1fr 420px; gap: 0;
-    height: calc(100vh - 49px - 280px); min-height: 500px;
+    flex: 1; min-height: 0;
+  }
+  .app-wrapper {
+    display: flex; flex-direction: column; height: calc(100vh - 49px);
   }
 
   /* Left Panel */
@@ -192,10 +195,22 @@
 
   /* Bottom: Audit Log */
   .bottom-panel {
-    border-top: 1px solid var(--border); padding: 16px 24px; max-height: 280px;
-    overflow-y: auto; background: var(--surface);
+    border-top: 1px solid var(--border); background: var(--surface);
+    transition: max-height 0.3s ease;
   }
-  .bottom-panel h3 { font-size: 14px; font-weight: 600; color: var(--text-dim); margin-bottom: 12px; }
+  .bottom-panel.collapsed { max-height: 42px; overflow: hidden; }
+  .bottom-panel:not(.collapsed) { max-height: 280px; overflow-y: auto; }
+  .bottom-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 24px; cursor: pointer; user-select: none;
+  }
+  .bottom-header:hover { background: var(--surface-2); }
+  .bottom-header h3 { font-size: 14px; font-weight: 600; color: var(--text-dim); margin: 0; }
+  .bottom-toggle {
+    font-size: 12px; color: var(--text-dim); transition: transform 0.3s;
+  }
+  .bottom-panel.collapsed .bottom-toggle { transform: rotate(180deg); }
+  .bottom-content { padding: 0 24px 16px; }
   .audit-table { width: 100%; border-collapse: collapse; font-size: 12px; }
   .audit-table th {
     text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--border);
@@ -238,6 +253,7 @@
   </div>
 </div>
 
+<div class="app-wrapper">
 <div class="main">
   <!-- Left Panel -->
   <div class="left-panel">
@@ -324,27 +340,37 @@
 </div>
 
 <!-- Bottom Panel: Audit Log -->
-<div class="bottom-panel">
-  <h3>Audit Log</h3>
-  <table class="audit-table" id="auditTable">
-    <thead>
-      <tr>
-        <th>ID</th>
-        <th>Timestamp</th>
-        <th>Query</th>
-        <th>Citations</th>
-        <th>Tokens</th>
-      </tr>
-    </thead>
-    <tbody id="auditBody">
-      <tr><td colspan="5" class="empty-state">No queries yet. Ask a question to get started.</td></tr>
-    </tbody>
-  </table>
+<div class="bottom-panel collapsed" id="bottomPanel">
+  <div class="bottom-header" onclick="toggleAuditLog()">
+    <h3>Audit Log</h3>
+    <span class="bottom-toggle">&#9660;</span>
+  </div>
+  <div class="bottom-content">
+    <table class="audit-table" id="auditTable">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Timestamp</th>
+          <th>Query</th>
+          <th>Citations</th>
+          <th>Tokens</th>
+        </tr>
+      </thead>
+      <tbody id="auditBody">
+        <tr><td colspan="5" class="empty-state">No queries yet. Ask a question to get started.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
 </div>
 
 <script>
 const API = '';
 let currentResult = null;
+
+function toggleAuditLog() {
+  document.getElementById('bottomPanel').classList.toggle('collapsed');
+}
 
 function resetPipeline() {
   for (let i = 1; i <= 4; i++) {
