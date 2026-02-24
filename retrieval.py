@@ -150,6 +150,11 @@ async def graph_search(query: str) -> list[dict]:
         import cognee
         from cognee.api.v1.search import SearchType
 
+        # Point cognee to shipped databases (Kuzu graph + SQLite metadata)
+        cognee_data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cognee_data")
+        if os.path.isdir(cognee_data_dir):
+            cognee.config.system_root_directory(cognee_data_dir)
+
         cognee.config.set_llm_config({
             "llm_provider": "openai",
             "llm_model": "gpt-4o-mini",
