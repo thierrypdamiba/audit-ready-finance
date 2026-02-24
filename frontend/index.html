@@ -420,6 +420,7 @@ async function submitQuery() {
     const reader = resp.body.getReader();
     const decoder = new TextDecoder();
     let buffer = '';
+    let eventType = null;
 
     while (true) {
       const { done, value } = await reader.read();
@@ -429,7 +430,6 @@ async function submitQuery() {
       const lines = buffer.split('\n');
       buffer = lines.pop(); // keep incomplete line in buffer
 
-      let eventType = null;
       for (const line of lines) {
         if (line.startsWith('event: ')) {
           eventType = line.slice(7).trim();
