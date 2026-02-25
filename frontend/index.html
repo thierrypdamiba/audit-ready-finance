@@ -24,7 +24,7 @@
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     background: var(--bg);
     color: var(--text);
-    min-height: 100vh;
+    height: 100vh; overflow: hidden;
   }
 
   /* Top Bar */
@@ -200,6 +200,7 @@
   }
   .bottom-panel.collapsed { max-height: 42px; overflow: hidden; }
   .bottom-panel:not(.collapsed) { max-height: 280px; overflow-y: auto; }
+  .bottom-content { padding: 0 24px 8px; }
   .bottom-header {
     display: flex; align-items: center; justify-content: space-between;
     padding: 10px 24px; cursor: pointer; user-select: none;
