@@ -20,11 +20,12 @@
     --cyan: #06b6d4;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; overflow: hidden; }
   body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    background: var(--bg);
+    background: var(--surface);
     color: var(--text);
-    height: 100vh; overflow: hidden;
+    display: flex; flex-direction: column;
   }
 
   /* Top Bar */
@@ -54,7 +55,7 @@
     flex: 1; min-height: 0;
   }
   .app-wrapper {
-    display: flex; flex-direction: column; height: calc(100vh - 49px);
+    display: flex; flex-direction: column; flex: 1; min-height: 0;
   }
 
   /* Left Panel */
@@ -196,11 +197,9 @@
   /* Bottom: Audit Log */
   .bottom-panel {
     border-top: 1px solid var(--border); background: var(--surface);
-    transition: max-height 0.3s ease;
+    flex-shrink: 0;
   }
-  .bottom-panel.collapsed { max-height: 42px; overflow: hidden; }
-  .bottom-panel:not(.collapsed) { max-height: 280px; overflow-y: auto; }
-  .bottom-content { padding: 0 24px 8px; }
+  .bottom-panel.collapsed .bottom-content { display: none; }
   .bottom-header {
     display: flex; align-items: center; justify-content: space-between;
     padding: 10px 24px; cursor: pointer; user-select: none;
@@ -208,10 +207,10 @@
   .bottom-header:hover { background: var(--surface-2); }
   .bottom-header h3 { font-size: 14px; font-weight: 600; color: var(--text-dim); margin: 0; }
   .bottom-toggle {
-    font-size: 12px; color: var(--text-dim); transition: transform 0.3s;
+    font-size: 16px; color: var(--text-dim); transition: transform 0.3s;
   }
   .bottom-panel.collapsed .bottom-toggle { transform: rotate(180deg); }
-  .bottom-content { padding: 0 24px 16px; }
+  .bottom-content { padding: 0 24px 8px; max-height: 220px; overflow-y: auto; }
   .audit-table { width: 100%; border-collapse: collapse; font-size: 12px; }
   .audit-table th {
     text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--border);
